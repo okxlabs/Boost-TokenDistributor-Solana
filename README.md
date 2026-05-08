@@ -102,7 +102,7 @@ The project includes multiple test suites for comprehensive validation:
 - **Time-Bounded Distributions**: Configurable 14-day distribution windows
 - **Role-Based Access Control**: Owner and operator role separation
 - **Persistent Claim Tracking**: Maintains claim status across merkle root updates
-- **Cross-Program Compatibility**: Supports both SPL Token and Token 2022
+- **Cross-Program Compatibility**: Supports both SPL Token and Token 2022 (excluding mints with the TransferFee extension)
 - **Event System**: Comprehensive event emission for tracking and analytics
 
 ## Architecture
@@ -113,6 +113,12 @@ The project includes multiple test suites for comprehensive validation:
 - **Owner Nonce PDA**: Manages automatic nonce assignment for multiple distributions
 - **Merkle Tree**: Off-chain structure for efficient claim verification
 
+## Usage Notes
+
+- `initial_total_amount` records the amount deposited at distributor creation for event tracking purposes only; it is not enforced as an upper bound on claims. Additional deposits to the vault are supported after creation.
+- The Merkle Root can be updated by the Operator at any time to support incremental distributions or list corrections. Each user's cumulative `claimed_amount` is persisted independently and cannot be reversed by a root update.
+- Token-2022 mints with the **TransferFee** extension are not supported. Operators must use fee-free token mints when creating a distributor.
+
 ## Security Features
 
 - PDA-based access control with owner/operator role separation
@@ -120,7 +126,7 @@ The project includes multiple test suites for comprehensive validation:
 - Time-based distribution windows to prevent manipulation
 - Overflow protection with checked arithmetic
 - CEI (Checks-Effects-Interactions) pattern implementation
-- Support for both SPL Token and Token 2022 programs
+- Support for both SPL Token and Token 2022 programs (excluding mints with the TransferFee extension)
 
 ## Development
 
