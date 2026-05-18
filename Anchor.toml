@@ -7,7 +7,7 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-token_distributor = "2Ab8No85xrnnd2rFamKjQqGAK6Qu9EQ4eEh59oaZEPBL"
+token_distributor = "Boostp5MKfWuF9eoczs1eY9g885t7doG6GLXM9xQnRxj"
 
 [registry]
 url = "https://api.apr.dev"
