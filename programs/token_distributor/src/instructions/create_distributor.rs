@@ -4,6 +4,14 @@ use crate::event::*;
 use crate::state::*;
 use crate::utils::transfer_token;
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::program_option::COption;
+use anchor_lang::solana_program::program_pack::Pack;
+use anchor_spl::token_2022::spl_token_2022::extension::{
+    permanent_delegate::PermanentDelegate,
+    transfer_fee::TransferFeeConfig,
+    BaseStateWithExtensions,
+    StateWithExtensions,
+};
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 /**
@@ -103,6 +111,40 @@ pub struct CreateDistributor<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
+/// Rejects mints whose properties would allow an external party to bypass or
+/// permanently lock the vault:
+///   - freeze_authority: holder can freeze the vault PDA, blocking all claims
+///   - TransferFeeConfig: fee deducted on every transfer causes vault underfunding
+///   - PermanentDelegate: delegate can drain the vault directly via transfer_checked
+fn assert_mint_is_safe(mint_info: &AccountInfo, token_program: &Pubkey) -> Result<()> {
+    if token_program == &anchor_spl::token_2022::ID {
+        let data = mint_info.try_borrow_data()?;
+        let state = StateWithExtensions::<anchor_spl::token_2022::spl_token_2022::state::Mint>::unpack(&data)
+            .map_err(|_| error!(TokenDistributorError::UnsupportedMintExtension))?;
+        require!(
+            state.base.freeze_authority == COption::None,
+            TokenDistributorError::UnsupportedMintExtension
+        );
+        require!(
+            state.get_extension::<TransferFeeConfig>().is_err(),
+            TokenDistributorError::UnsupportedMintExtension
+        );
+        require!(
+            state.get_extension::<PermanentDelegate>().is_err(),
+            TokenDistributorError::UnsupportedMintExtension
+        );
+    } else {
+        let data = mint_info.try_borrow_data()?;
+        let state = anchor_spl::token_2022::spl_token_2022::state::Mint::unpack(&data)
+            .map_err(|_| error!(TokenDistributorError::UnsupportedMintExtension))?;
+        require!(
+            state.freeze_authority == COption::None,
+            TokenDistributorError::UnsupportedMintExtension
+        );
+    }
+    Ok(())
+}
+
 /**
  * Creates a new token distributor with automatic nonce management
  *
@@ -124,6 +166,12 @@ pub fn handle_create_distributor(
         ctx.accounts.operator.key() != Pubkey::default(),
         TokenDistributorError::InvalidOperator
     );
+
+    // Reject mints with unsafe extensions or authorities
+    assert_mint_is_safe(
+        &ctx.accounts.token_mint.to_account_info(),
+        &ctx.accounts.token_program.key(),
+    )?;
 
     let owner_nonce = &mut ctx.accounts.owner_nonce;
     let distributor = &mut ctx.accounts.distributor;

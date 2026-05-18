@@ -96,9 +96,17 @@ pub fn handle_withdraw(ctx: Context<Withdraw>) -> Result<()> {
     
     // ===== VALIDATION PHASE =====
     
-    // Ensure distribution has ended or was never started before allowing withdrawal
+    // Ensure distribution has ended before allowing withdrawal.
+    // If a merkle root has been published (public commitment made), require that
+    // set_time() was called and the distribution period has fully elapsed.
+    // If no root has been published yet, allow withdrawal freely (emergency cancellation).
     let current_time = Clock::get()?.unix_timestamp;
-    require!(current_time > distributor.end_time, TokenDistributorError::DistributionNotEnded);
+    if distributor.merkle_root != [0u8; 32] {
+        require!(
+            distributor.end_time > 0 && current_time > distributor.end_time,
+            TokenDistributorError::DistributionNotEnded
+        );
+    }
     
     // Get remaining balance for potential transfer and event emission
     let remaining_balance = ctx.accounts.token_vault.amount;

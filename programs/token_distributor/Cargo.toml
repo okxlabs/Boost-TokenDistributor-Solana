@@ -25,4 +25,4 @@ workspace = true
 
 [dependencies]
 anchor-lang = { version = "0.31.1", features = ["init-if-needed", "event-cpi"]}
-anchor-spl = "0.31.1"
+anchor-spl = { version = "0.31.1", features = ["token", "token_2022"] }

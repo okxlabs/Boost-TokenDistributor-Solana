@@ -49,4 +49,8 @@ pub enum TokenDistributorError {
     DistributorNotOwnedByProgram,
     #[msg("Token mint does not match distributor's token mint")]
     TokenMintMismatch,
+
+    // Mint safety errors
+    #[msg("Token mint has an extension or authority that is incompatible with this program")]
+    UnsupportedMintExtension,
 } 
